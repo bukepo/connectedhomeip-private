@@ -71,6 +71,8 @@ protected:
     void SignalThreadActivityPending();
     BaseType_t SignalThreadActivityPendingFromISR();
 
+    bool mJoinPending = false;
+
 private:
     // ===== Private members for use by this class only.
 

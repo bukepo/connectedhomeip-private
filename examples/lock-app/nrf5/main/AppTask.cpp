@@ -103,6 +103,7 @@ int AppTask::Init()
     static app_button_cfg_t sButtons[] = {
         { LOCK_BUTTON, APP_BUTTON_ACTIVE_LOW, BUTTON_PULL, ButtonEventHandler },
         { FUNCTION_BUTTON, APP_BUTTON_ACTIVE_LOW, BUTTON_PULL, ButtonEventHandler },
+        { JOIN_BUTTON, APP_BUTTON_ACTIVE_LOW, BUTTON_PULL, ButtonEventHandler },
     };
 
     ret = app_button_init(sButtons, ARRAY_SIZE(sButtons), pdMS_TO_TICKS(FUNCTION_BUTTON_DEBOUNCE_PERIOD_MS));
@@ -275,9 +276,17 @@ void AppTask::LockActionEventHandler(AppEvent * aEvent)
     }
 }
 
+void AppTask::JoinHandler(AppEvent * aEvent)
+{
+    if (aEvent->ButtonEvent.PinNo != JOIN_BUTTON)
+        return;
+
+    ThreadStackMgr().JoinerStart();
+}
+
 void AppTask::ButtonEventHandler(uint8_t pin_no, uint8_t button_action)
 {
-    if (pin_no != LOCK_BUTTON && pin_no != FUNCTION_BUTTON)
+    if (pin_no != LOCK_BUTTON && pin_no != FUNCTION_BUTTON && pin_no != JOIN_BUTTON)
     {
         return;
     }
@@ -294,6 +303,10 @@ void AppTask::ButtonEventHandler(uint8_t pin_no, uint8_t button_action)
     else if (pin_no == FUNCTION_BUTTON)
     {
         button_event.Handler = FunctionHandler;
+    }
+    else if (pin_no == JOIN_BUTTON)
+    {
+        button_event.Handler = JoinHandler;
     }
 
     sAppTask.PostEvent(&button_event);

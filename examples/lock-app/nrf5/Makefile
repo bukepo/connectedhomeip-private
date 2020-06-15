@@ -205,6 +205,7 @@ DEFINES = \
     __STACK_SIZE=8192 \
 
 LIBS = \
+    -lSetupPayload \
     $(NRF5_SDK_ROOT)/external/openthread/lib/nrf52840/gcc/libopenthread-cli-ftd.a \
     $(NRF5_SDK_ROOT)/external/openthread/lib/nrf52840/gcc/libopenthread-ftd.a \
     $(NRF5_SDK_ROOT)/external/openthread/lib/nrf52840/gcc/libopenthread-platform-utils.a \

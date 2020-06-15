@@ -127,6 +127,22 @@ extern "C" void JLINK_MONITOR_OnPoll(void) {}
 
 #endif // JLINK_MMD
 
+static void * ot_calloc(size_t n, size_t size)
+{
+    void * p_ptr = NULL;
+
+    p_ptr = pvPortMalloc(n * size);
+
+    memset(p_ptr, 0, n * size);
+
+    return p_ptr;
+}
+
+static void ot_free(void * p_ptr)
+{
+    vPortFree(p_ptr);
+}
+
 // ================================================================================
 // Main Code
 // ================================================================================
@@ -224,11 +240,11 @@ int main(void)
 #if CHIP_ENABLE_OPENTHREAD
     NRF_LOG_INFO("Initializing OpenThread stack");
 
-    mbedtls_platform_set_calloc_free(calloc, free);
+    mbedtls_platform_set_calloc_free(ot_calloc, ot_free);
     nrf_cc310_platform_abort_init();
     nrf_cc310_platform_mutex_init();
     mbedtls_platform_setup(NULL);
-    otHeapSetCAllocFree(calloc, free);
+    otHeapSetCAllocFree(ot_calloc, ot_free);
 
     otSysInit(0, NULL);
 

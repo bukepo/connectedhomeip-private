@@ -26,11 +26,15 @@
 #ifndef GENERIC_THREAD_STACK_MANAGER_IMPL_FREERTOS_IPP
 #define GENERIC_THREAD_STACK_MANAGER_IMPL_FREERTOS_IPP
 
+#include <openthread/joiner.h>
 #include <platform/FreeRTOS/GenericThreadStackManagerImpl_FreeRTOS.h>
 #include <platform/ThreadStackManager.h>
 #include <platform/internal/CHIPDeviceLayerInternal.h>
 #include <support/CodeUtils.h>
 #include <support/logging/CHIPLogging.h>
+
+#include "setup_payload/QRCodeSetupPayloadGenerator.h"
+#include "setup_payload/SetupPayload.h"
 
 namespace chip {
 namespace DeviceLayer {
@@ -117,6 +121,8 @@ BaseType_t GenericThreadStackManagerImpl_FreeRTOS<ImplClass>::SignalThreadActivi
 template <class ImplClass>
 void GenericThreadStackManagerImpl_FreeRTOS<ImplClass>::ThreadTaskMain(void * arg)
 {
+    char pskd[27 / 5 + 1 + 1] = {};
+
     GenericThreadStackManagerImpl_FreeRTOS<ImplClass> * self =
         static_cast<GenericThreadStackManagerImpl_FreeRTOS<ImplClass> *>(arg);
 
@@ -127,10 +133,47 @@ void GenericThreadStackManagerImpl_FreeRTOS<ImplClass>::ThreadTaskMain(void * ar
     // Capture the Thread task handle.
     self->mThreadTask = xTaskGetCurrentTaskHandle();
 
+    chip::SetupPayload payload;
+
+    payload.version      = 1;
+    payload.vendorID     = 1;
+    payload.productID    = 1;
+    payload.setUpPINCode = 0x202020;
+
+    for (size_t i = 0; i < sizeof(pskd) - 1; ++i)
+    {
+        pskd[i] = "0123456789ABCDEFGHJKLMNPRSTUVWXY"[(payload.setUpPINCode >> (i * 5)) & ((1 << 5) - 1)];
+    }
+
+    ChipLogDetail(DeviceLayer, "PSKd: %s", pskd);
+
+    QRCodeSetupPayloadGenerator generator(payload);
+
+    std::string result;
+    CHIP_ERROR err = generator.payloadBase41Representation(result);
+
+    if (err == CHIP_NO_ERROR)
+    {
+        ChipLogDetail(DeviceLayer, "QRCode: %s", result.c_str());
+    }
+    else
+    {
+        ChipLogError(DeviceLayer, "Couldn't get payload string %d", err);
+    }
+
+    // start joinging on boot.
+    self->mJoinPending = true;
+
     while (true)
     {
         // Lock the Thread stack.
         self->Impl()->LockThreadStack();
+
+        if (self->mJoinPending)
+        {
+            self->mJoinPending = false;
+            self->Impl()->_JoinerStart(pskd);
+        }
 
         // Process any pending Thread activity.
         self->Impl()->ProcessThreadActivity();
