@@ -37,7 +37,6 @@ SRCS = \
     $(PROJECT_ROOT)/main/AppTask.cpp \
     $(PROJECT_ROOT)/main/LEDWidget.cpp \
     $(PROJECT_ROOT)/main/BoltLockManager.cpp \
-    $(PROJECT_ROOT)/main/support/CXXExceptionStubs.cpp \
     $(PROJECT_ROOT)/main/support/nRF5Sbrk.c \
     $(PROJECT_ROOT)/main/support/FreeRTOSNewlibLockSupport.c \
     $(NRF5_SDK_ROOT)/components/ble/common/ble_advdata.c \
@@ -203,6 +202,7 @@ DEFINES = \
     __STACK_SIZE=8192 \
 
 LIBS = \
+    -lSetupPayload \
     $(NRF5_SDK_ROOT)/external/openthread/lib/nrf52840/gcc/libopenthread-cli-ftd.a \
     $(NRF5_SDK_ROOT)/external/openthread/lib/nrf52840/gcc/libopenthread-ftd.a \
     $(NRF5_SDK_ROOT)/external/openthread/lib/nrf52840/gcc/libopenthread-platform-utils.a \

@@ -29,6 +29,7 @@
 #include <openthread/cli.h>
 #include <openthread/dataset.h>
 #include <openthread/dataset_ftd.h>
+#include <openthread/joiner.h>
 #include <openthread/link.h>
 #include <openthread/tasklet.h>
 #include <openthread/thread.h>
@@ -807,6 +808,42 @@ CHIP_ERROR GenericThreadStackManagerImpl_OpenThread<ImplClass>::AdjustPollingInt
     }
 
     return err;
+}
+
+template <class ImplClass>
+void GenericThreadStackManagerImpl_OpenThread<ImplClass>::OnJoinerComplete(otError aError, void * aContext)
+{
+    static_cast<GenericThreadStackManagerImpl_OpenThread *>(aContext)->OnJoinerComplete(aError);
+}
+
+template <class ImplClass>
+void GenericThreadStackManagerImpl_OpenThread<ImplClass>::OnJoinerComplete(otError aError)
+{
+    ChipLogProgress(DeviceLayer, "Join Thread network: %s", otThreadErrorToString(aError));
+
+    if (aError == OT_ERROR_NONE)
+    {
+        otError error = otThreadSetEnabled(mOTInst, true);
+
+        ChipLogProgress(DeviceLayer, "Start Thread network: %s", otThreadErrorToString(error));
+    }
+}
+
+template <class ImplClass>
+CHIP_ERROR GenericThreadStackManagerImpl_OpenThread<ImplClass>::_JoinerStart(const char * aPSKd)
+{
+    otError error;
+
+    if (!otIp6IsEnabled(mOTInst))
+    {
+        SuccessOrExit(error = otIp6SetEnabled(mOTInst, true));
+    }
+
+    error = otJoinerStart(mOTInst, aPSKd, NULL, NULL, NULL, NULL, NULL, &GenericThreadStackManagerImpl_OpenThread::OnJoinerComplete,
+                          this);
+
+exit:
+    return MapOpenThreadError(error);
 }
 
 } // namespace Internal

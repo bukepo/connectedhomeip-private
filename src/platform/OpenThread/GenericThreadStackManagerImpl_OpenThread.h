@@ -89,12 +89,16 @@ protected:
     CHIP_ERROR DoInit(otInstance * otInst);
     bool IsThreadAttachedNoLock(void);
     CHIP_ERROR AdjustPollingInterval(void);
+    CHIP_ERROR _JoinerStart(const char * aPSKd);
 
 private:
     // ===== Private members for use by this class only.
 
     otInstance * mOTInst;
     ConnectivityManager::ThreadPollingConfig mPollingConfig;
+
+    static void OnJoinerComplete(otError aError, void * aContext);
+    void OnJoinerComplete(otError aError);
 
     inline ImplClass * Impl() { return static_cast<ImplClass *>(this); }
 };
