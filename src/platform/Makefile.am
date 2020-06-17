@@ -151,6 +151,7 @@ libDeviceLayer_a_SOURCES               +=       \
     nRF5/PlatformManagerImpl.cpp                \
     nRF5/ConfigurationManagerImpl.cpp           \
     nRF5/ConnectivityManagerImpl.cpp            \
+    nRF5/ConfigurationManagerImpl.cpp            \
     nRF5/nRF5Config.cpp                         \
     nRF5/nRF5Utils.cpp                          \
     nRF5/Logging.cpp                            \

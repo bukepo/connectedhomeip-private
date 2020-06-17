@@ -33,12 +33,19 @@
 #include "FreeRTOS.h"
 
 #include <platform/CHIPDeviceLayer.h>
+#include <setup_payload/QRCodeSetupPayloadGenerator.h>
+#include <setup_payload/SetupPayload.h>
 
 #define FACTORY_RESET_TRIGGER_TIMEOUT 3000
 #define FACTORY_RESET_CANCEL_WINDOW_TIMEOUT 3000
 #define APP_TASK_STACK_SIZE (4096)
 #define APP_TASK_PRIORITY 2
 #define APP_EVENT_QUEUE_SIZE 10
+
+#ifndef EXAMPLE_VENDOR_ID
+// Spells CHIP on a dialer
+#define EXAMPLE_VENDOR_ID 0x2447
+#endif
 
 APP_TIMER_DEF(sFunctionTimer);
 
@@ -148,6 +155,39 @@ int AppTask::Init()
     {
         NRF_LOG_INFO("xSemaphoreCreateMutex() failed");
         APP_ERROR_HANDLER(NRF_ERROR_NULL);
+    }
+
+    {
+        chip::SetupPayload payload;
+        char pairingCode[9];
+        int32_t pairingCodeInt;
+        size_t pairingCodeSize;
+        ret = ConfigurationMgr().GetPairingCode(pairingCode, sizeof(pairingCode), pairingCodeSize);
+        if (ret == CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND)
+        {
+            pairingCodeInt = rand() % 100000000;
+            sprintf(pairingCode, "%08d", pairingCodeInt);
+            ret = ConfigurationMgr().StorePairingCode(pairingCode, strlen(pairingCode));
+        }
+        else
+        {
+            sscanf(pairingCode, "%d", &pairingCodeInt);
+        }
+
+        payload.version      = 1;
+        payload.vendorID     = EXAMPLE_VENDOR_ID;
+        payload.productID    = 1;
+        payload.setUpPINCode = pairingCodeInt;
+        chip::QRCodeSetupPayloadGenerator generator(payload);
+
+        std::string result;
+        CHIP_ERROR err = generator.payloadBase41Representation(result);
+        if (err != CHIP_NO_ERROR)
+        {
+            NRF_LOG_ERROR("Failed to generate QR Code");
+        }
+        NRF_LOG_INFO("SetupPINCode: %08d", pairingCodeInt);
+        NRF_LOG_INFO("SetupQRCode:  %s", result.c_str());
     }
 
     // Init ZCL Data Model
