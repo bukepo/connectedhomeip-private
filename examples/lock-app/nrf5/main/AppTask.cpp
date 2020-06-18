@@ -35,6 +35,7 @@
 #include <platform/CHIPDeviceLayer.h>
 #include <setup_payload/QRCodeSetupPayloadGenerator.h>
 #include <setup_payload/SetupPayload.h>
+#include <support/ErrorStr.h>
 
 #define FACTORY_RESET_TRIGGER_TIMEOUT 3000
 #define FACTORY_RESET_CANCEL_WINDOW_TIMEOUT 3000
@@ -95,7 +96,7 @@ int AppTask::StartAppTask()
 
 int AppTask::Init()
 {
-    ret_code_t ret;
+    ret_code_t ret = NRF_SUCCESS;
 
     // Initialize LEDs
     sStatusLED.Init(SYSTEM_STATE_LED);
@@ -168,6 +169,11 @@ int AppTask::Init()
             pairingCodeInt = rand() % 100000000;
             sprintf(pairingCode, "%08d", pairingCodeInt);
             ret = ConfigurationMgr().StorePairingCode(pairingCode, strlen(pairingCode));
+            if (ret != CHIP_NO_ERROR)
+            {
+                NRF_LOG_INFO("ConfigurationMgr().StorePairingCode() failed: %s", chip::ErrorStr(ret));
+                APP_ERROR_HANDLER(NRF_ERROR_NULL);
+            }
         }
         else
         {
@@ -199,13 +205,13 @@ int AppTask::Init()
 
 void AppTask::AppTaskMain(void * pvParameter)
 {
-    ret_code_t ret;
+    ret_code_t ret = NRF_SUCCESS;
     AppEvent event;
 
     ret = sAppTask.Init();
     if (ret != NRF_SUCCESS)
     {
-        NRF_LOG_INFO("AppTask.Init() failed");
+        NRF_LOG_INFO("AppTask.Init() failed: %d", chip::ErrorStr(ret));
         APP_ERROR_HANDLER(ret);
     }
 
