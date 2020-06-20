@@ -92,6 +92,7 @@ protected:
 
     void _FactoryReset(void);
     CHIP_ERROR _JoinerStart(const char * aPSKd);
+    void _FactoryReset(void);
 
 private:
     // ===== Private members for use by this class only.

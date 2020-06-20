@@ -72,6 +72,9 @@ public:
     CHIP_ERROR GetAndLogThreadTopologyMinimal(void);
     CHIP_ERROR GetAndLogThreadTopologyFull(void);
     CHIP_ERROR GetPrimary802154MACAddress(uint8_t * buf);
+
+    // Thread operations
+    void FactoryReset(void);
     void JoinerStart(void);
 
     void FactoryReset(void);
@@ -312,6 +315,12 @@ inline void ThreadStackManager::JoinerStart()
     return static_cast<ImplClass *>(this)->SignalThreadActivityPending();
 }
 
+inline void ThreadStackManager::FactoryReset()
+{
+    static_cast<ImplClass *>(this)->mFactoryResetPending = true;
+
+    return static_cast<ImplClass *>(this)->SignalThreadActivityPending();
+}
 } // namespace DeviceLayer
 } // namespace chip
 

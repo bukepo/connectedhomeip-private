@@ -858,7 +858,14 @@ exit:
     ChipLogProgress(DeviceLayer, "Joiner start: %s", otThreadErrorToString(error));
 
     return MapOpenThreadError(error);
-} // namespace Internal
+}
+
+template <class ImplClass>
+void GenericThreadStackManagerImpl_OpenThread<ImplClass>::_FactoryReset(void)
+{
+    ChipLogProgress(DeviceLayer, "About to factory resetting..");
+    otInstanceFactoryReset(mOTInst);
+}
 
 } // namespace Internal
 } // namespace DeviceLayer
