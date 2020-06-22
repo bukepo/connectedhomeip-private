@@ -19,6 +19,8 @@
 #ifndef LED_WIDGET_H
 #define LED_WIDGET_H
 
+#include <cstdint>
+
 class LEDWidget
 {
 public:
