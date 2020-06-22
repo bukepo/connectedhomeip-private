@@ -811,7 +811,6 @@ CHIP_ERROR GenericThreadStackManagerImpl_OpenThread<ImplClass>::AdjustPollingInt
 }
 
 template <class ImplClass>
-
 void GenericThreadStackManagerImpl_OpenThread<ImplClass>::_FactoryReset(void)
 {
     ChipLogProgress(DeviceLayer, "About to factory reset ...");
@@ -820,6 +819,7 @@ void GenericThreadStackManagerImpl_OpenThread<ImplClass>::_FactoryReset(void)
     Impl()->UnlockThreadStack();
 }
 
+template <class ImplClass>
 void GenericThreadStackManagerImpl_OpenThread<ImplClass>::OnJoinerComplete(otError aError, void * aContext)
 {
     static_cast<GenericThreadStackManagerImpl_OpenThread *>(aContext)->OnJoinerComplete(aError);
@@ -843,6 +843,7 @@ CHIP_ERROR GenericThreadStackManagerImpl_OpenThread<ImplClass>::_JoinerStart(con
 {
     otError error;
 
+    Impl()->LockThreadStack();
     VerifyOrExit(!otDatasetIsCommissioned(mOTInst), error = OT_ERROR_INVALID_STATE);
     VerifyOrExit(otJoinerGetState(mOTInst) == OT_JOINER_STATE_IDLE, error = OT_ERROR_BUSY;);
 
@@ -857,14 +858,8 @@ CHIP_ERROR GenericThreadStackManagerImpl_OpenThread<ImplClass>::_JoinerStart(con
 exit:
     ChipLogProgress(DeviceLayer, "Joiner start: %s", otThreadErrorToString(error));
 
+    Impl()->UnlockThreadStack();
     return MapOpenThreadError(error);
-}
-
-template <class ImplClass>
-void GenericThreadStackManagerImpl_OpenThread<ImplClass>::_FactoryReset(void)
-{
-    ChipLogProgress(DeviceLayer, "About to factory resetting..");
-    otInstanceFactoryReset(mOTInst);
 }
 
 } // namespace Internal

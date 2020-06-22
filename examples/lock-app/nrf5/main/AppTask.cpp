@@ -304,7 +304,7 @@ void AppTask::ButtonEventHandler(uint8_t pin_no, uint8_t button_action)
     {
         button_event.Handler = FunctionHandler;
     }
-    else if (pin_no == JOIN_BUTTON)
+    else if (pin_no == JOIN_BUTTON && button_action == APP_BUTTON_RELEASE)
     {
         button_event.Handler = JoinHandler;
     }

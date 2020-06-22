@@ -71,8 +71,6 @@ protected:
     void SignalThreadActivityPending();
     BaseType_t SignalThreadActivityPendingFromISR();
 
-    bool mFactoryResetPending = false;
-
     bool mJoinPending = false;
 
 private:

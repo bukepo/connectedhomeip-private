@@ -166,20 +166,14 @@ void GenericThreadStackManagerImpl_FreeRTOS<ImplClass>::ThreadTaskMain(void * ar
 
     while (true)
     {
-        // Lock the Thread stack.
-        self->Impl()->LockThreadStack();
-
-        if (self->mFactoryResetPending)
-        {
-            self->mFactoryResetPending = false;
-            self->Impl()->_FactoryReset();
-        }
-
         if (self->mJoinPending)
         {
             self->mJoinPending = false;
             self->Impl()->_JoinerStart(pskd);
         }
+
+        // Lock the Thread stack.
+        self->Impl()->LockThreadStack();
 
         // Process any pending Thread activity.
         self->Impl()->ProcessThreadActivity();

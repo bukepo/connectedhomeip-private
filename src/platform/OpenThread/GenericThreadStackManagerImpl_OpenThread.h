@@ -90,7 +90,6 @@ protected:
     bool IsThreadAttachedNoLock(void);
     CHIP_ERROR AdjustPollingInterval(void);
 
-    void _FactoryReset(void);
     CHIP_ERROR _JoinerStart(const char * aPSKd);
     void _FactoryReset(void);
 

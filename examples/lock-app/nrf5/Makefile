@@ -39,7 +39,6 @@ SRCS = \
     $(PROJECT_ROOT)/main/BoltLockManager.cpp \
     $(PROJECT_ROOT)/main/Server.cpp \
     $(PROJECT_ROOT)/main/DataModelHandler.cpp \
-    $(PROJECT_ROOT)/main/support/CXXExceptionStubs.cpp \
     $(PROJECT_ROOT)/main/support/nRF5Sbrk.c \
     $(PROJECT_ROOT)/main/support/FreeRTOSNewlibLockSupport.c \
     $(NRF5_SDK_ROOT)/components/ble/common/ble_advdata.c \
