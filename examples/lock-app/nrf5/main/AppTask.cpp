@@ -203,10 +203,25 @@ int AppTask::Init()
     return ret;
 }
 
+void SendUDPBroadCast()
+{
+    UDPEndPoint * ep = NULL;
+    IPAddress addr;
+    auto * buffer = System::PacketBuffer::NewWithAvailableSize(16);
+    buffer[0]     = 'h';
+    int intfId    = -1;
+    chip::DeviceLayer::InetLayer.NewUDPEndPoint(&ep);
+    chip::Inet::IPAddress::FromString("ff03::2", addr);
+    chip::Inet::InterfaceNameToId("th2", &intfId);
+    ep->SendTo(addr, 23367, intfId, buffer, 0);
+    ep->Release();
+}
+
 void AppTask::AppTaskMain(void * pvParameter)
 {
     ret_code_t ret = NRF_SUCCESS;
     AppEvent event;
+    uint64_t mLastChangeTimeUS = 0;
 
     ret = sAppTask.Init();
     if (ret != NRF_SUCCESS)
@@ -279,6 +294,15 @@ void AppTask::AppTaskMain(void * pvParameter)
         sLockLED.Animate();
         sUnusedLED.Animate();
         sUnusedLED_1.Animate();
+
+        uint64_t nowUS            = chip::System::Platform::Layer::GetClock_Monotonic();
+        uint64_t nextChangeTimeUS = mLastChangeTimeUS + 1 * 1000 * 1000UL;
+
+        if (nowUS > nextChangeTimeUS)
+        {
+            SendUDPBroadCast();
+            mLastChangeTimeUS = nowUS;
+        }
     }
 }
 
