@@ -34,6 +34,7 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "task.h"
+#include "timers.h"
 #endif
 
 namespace chip {
@@ -77,6 +78,7 @@ private:
     // ===== Private members for use by this class only.
 
     inline ImplClass * Impl() { return static_cast<ImplClass *>(this); }
+    static void HandleJoinerTimer(TimerHandle_t xTimer);
 
     static void ThreadTaskMain(void * arg);
 };

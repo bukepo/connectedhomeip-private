@@ -119,6 +119,16 @@ BaseType_t GenericThreadStackManagerImpl_FreeRTOS<ImplClass>::SignalThreadActivi
 }
 
 template <class ImplClass>
+void GenericThreadStackManagerImpl_FreeRTOS<ImplClass>::HandleJoinerTimer(TimerHandle_t xTimer)
+{
+    ChipLogDetail(DeviceLayer, "Thread joiner timer");
+
+    GenericThreadStackManagerImpl_FreeRTOS<ImplClass> * self =
+        static_cast<GenericThreadStackManagerImpl_FreeRTOS<ImplClass> *>(pvTimerGetTimerID(xTimer));
+    self->Impl()->JoinerStart();
+}
+
+template <class ImplClass>
 void GenericThreadStackManagerImpl_FreeRTOS<ImplClass>::ThreadTaskMain(void * arg)
 {
     char pskd[27 / 5 + 1 + 1] = {};
@@ -164,12 +174,15 @@ void GenericThreadStackManagerImpl_FreeRTOS<ImplClass>::ThreadTaskMain(void * ar
     // start joinging on boot.
     self->mJoinPending = true;
 
+    TimerHandle_t tmr = xTimerCreate("JoinerTimer", pdMS_TO_TICKS(3000), pdTRUE, (void *) self, &HandleJoinerTimer);
+
     while (true)
     {
         if (self->mJoinPending)
         {
             self->mJoinPending = false;
             self->Impl()->_JoinerStart(pskd);
+            xTimerStart(tmr, 0);
         }
 
         // Lock the Thread stack.
@@ -184,6 +197,8 @@ void GenericThreadStackManagerImpl_FreeRTOS<ImplClass>::ThreadTaskMain(void * ar
         // Wait for a signal that more activity is pending.
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     }
+
+    xTimerDelete(tmr, 0);
 }
 
 } // namespace Internal

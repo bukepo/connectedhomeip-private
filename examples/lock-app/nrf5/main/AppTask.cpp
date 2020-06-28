@@ -50,7 +50,7 @@
 
 #ifndef EXAMPLE_VENDOR_ID
 // Spells CHIP on a dialer
-#define EXAMPLE_VENDOR_ID 0x2447
+#define EXAMPLE_VENDOR_ID 1000
 #endif
 
 APP_TIMER_DEF(sFunctionTimer);
@@ -172,7 +172,7 @@ int AppTask::Init()
         ret = ConfigurationMgr().GetPairingCode(pairingCode, sizeof(pairingCode), pairingCodeSize);
         if (ret == CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND)
         {
-            pairingCodeInt = rand() % 100000000;
+            pairingCodeInt = 0x202020;
             sprintf(pairingCode, "%08ld", pairingCodeInt);
             ret = ConfigurationMgr().StorePairingCode(pairingCode, strlen(pairingCode));
             if (ret != CHIP_NO_ERROR)
@@ -188,7 +188,7 @@ int AppTask::Init()
 
         payload.version      = 1;
         payload.vendorID     = EXAMPLE_VENDOR_ID;
-        payload.productID    = 1;
+        payload.productID    = 2020;
         payload.setUpPINCode = pairingCodeInt;
         chip::QRCodeSetupPayloadGenerator generator(payload);
 
