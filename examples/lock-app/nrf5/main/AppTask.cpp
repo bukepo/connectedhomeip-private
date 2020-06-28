@@ -33,9 +33,14 @@
 #include "FreeRTOS.h"
 
 #include <platform/CHIPDeviceLayer.h>
+#include <platform/nRF5/ThreadStackManagerImpl.h>
 #include <setup_payload/QRCodeSetupPayloadGenerator.h>
 #include <setup_payload/SetupPayload.h>
 #include <support/ErrorStr.h>
+#include <system/SystemClock.h>
+
+#include <openthread/message.h>
+#include <openthread/udp.h>
 
 #define FACTORY_RESET_TRIGGER_TIMEOUT 3000
 #define FACTORY_RESET_CANCEL_WINDOW_TIMEOUT 3000
@@ -167,7 +172,7 @@ int AppTask::Init()
         if (ret == CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND)
         {
             pairingCodeInt = rand() % 100000000;
-            sprintf(pairingCode, "%08d", pairingCodeInt);
+            sprintf(pairingCode, "%08ld", pairingCodeInt);
             ret = ConfigurationMgr().StorePairingCode(pairingCode, strlen(pairingCode));
             if (ret != CHIP_NO_ERROR)
             {
@@ -177,7 +182,7 @@ int AppTask::Init()
         }
         else
         {
-            sscanf(pairingCode, "%d", &pairingCodeInt);
+            sscanf(pairingCode, "%ld", &pairingCodeInt);
         }
 
         payload.version      = 1;
@@ -205,16 +210,31 @@ int AppTask::Init()
 
 void SendUDPBroadCast()
 {
-    UDPEndPoint * ep = NULL;
-    IPAddress addr;
-    auto * buffer = System::PacketBuffer::NewWithAvailableSize(16);
-    buffer[0]     = 'h';
-    int intfId    = -1;
-    chip::DeviceLayer::InetLayer.NewUDPEndPoint(&ep);
-    chip::Inet::IPAddress::FromString("ff03::2", addr);
-    chip::Inet::InterfaceNameToId("th2", &intfId);
-    ep->SendTo(addr, 23367, intfId, buffer, 0);
-    ep->Release();
+    chip::Inet::UDPEndPoint * ep = NULL;
+    chip::Inet::IPAddress addr;
+    // chip::Inet::InterfaceId interface;
+    if (!ConnectivityMgrImpl().IsThreadAttached())
+    {
+        return;
+    }
+    ThreadStackMgrImpl().LockThreadStack();
+    otError error = OT_ERROR_NONE;
+    otMessageInfo messageInfo;
+    otUdpSocket mSocket;
+    otMessage * message    = nullptr;
+    uint8_t curArg         = 0;
+    uint16_t payloadLength = 0;
+
+    memset(&mSocket, 0, sizeof(mSocket));
+    memset(&messageInfo, 0, sizeof(messageInfo));
+
+    message = otUdpNewMessage(ThreadStackMgrImpl().OTInstance(), nullptr);
+    otIp6AddressFromString("ff03::1", &messageInfo.mPeerAddr);
+    messageInfo.mPeerPort = 23367;
+    otMessageAppend(message, "012345", static_cast<uint16_t>(strlen("012345")));
+
+    otUdpSend(&mSocket, message, &messageInfo);
+    ThreadStackMgrImpl().UnlockThreadStack();
 }
 
 void AppTask::AppTaskMain(void * pvParameter)
@@ -276,7 +296,8 @@ void AppTask::AppTaskMain(void * pvParameter)
             {
                 sStatusLED.Set(true);
             }
-            else if (sIsThreadProvisioned && sIsThreadEnabled && sIsPairedToAccount && (!sIsThreadAttached || !isFullyConnected))
+            else if (sIsThreadProvisioned &&
+                     sIsThreadEnabled /* && sIsPairedToAccount && (!sIsThreadAttached || !isFullyConnected )*/)
             {
                 sStatusLED.Blink(950, 50);
             }
@@ -296,7 +317,7 @@ void AppTask::AppTaskMain(void * pvParameter)
         sUnusedLED_1.Animate();
 
         uint64_t nowUS            = chip::System::Platform::Layer::GetClock_Monotonic();
-        uint64_t nextChangeTimeUS = mLastChangeTimeUS + 1 * 1000 * 1000UL;
+        uint64_t nextChangeTimeUS = mLastChangeTimeUS + 5 * 1000 * 1000UL;
 
         if (nowUS > nextChangeTimeUS)
         {
