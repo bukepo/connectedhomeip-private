@@ -190,6 +190,12 @@ void GenericThreadStackManagerImpl_OpenThread_LwIP<ImplClass>::UpdateThreadInter
                     ip_addr_t lwipAddr = addr.ToLwIPAddr();
                     s8_t addrIdx;
 
+                    // Check if the address ia ALoc (Anycast Locator)
+                    if (addr.IsIPv6ULA() && otAddr->mAddress.mFields.m8[14] == 0xfc)
+                    {
+                        continue;
+                    }
+
                     // Add the address to the LwIP netif.  If the address is a link-local, and the primary
                     // link-local address* for the LwIP netif has not been set already, then use netif_ip6_addr_set()
                     // to set the primary address.  Otherwise use netif_add_ip6_address(). This special case is
@@ -219,7 +225,8 @@ void GenericThreadStackManagerImpl_OpenThread_LwIP<ImplClass>::UpdateThreadInter
                     }
 
                     // Set the address state to PREFERRED or ACTIVE depending on the state in OpenThread.
-                    netif_ip6_addr_set_state(mNetIf, addrIdx, (otAddr->mPreferred) ? IP6_ADDR_PREFERRED : IP6_ADDR_VALID);
+                    // netif_ip6_addr_set_state(mNetIf, addrIdx, (otAddr->mPreferred && !otAddr->) ? IP6_ADDR_PREFERRED :
+                    // IP6_ADDR_VALID);
 
                     // Record that the netif address slot was assigned during this loop.
                     addrAssigned[addrIdx] = true;

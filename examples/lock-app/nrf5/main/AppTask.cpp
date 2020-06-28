@@ -33,12 +33,25 @@
 #include "FreeRTOS.h"
 
 #include <platform/CHIPDeviceLayer.h>
+#include <platform/nRF5/ThreadStackManagerImpl.h>
+#include <setup_payload/QRCodeSetupPayloadGenerator.h>
+#include <setup_payload/SetupPayload.h>
+#include <support/ErrorStr.h>
+#include <system/SystemClock.h>
+
+#include <openthread/message.h>
+#include <openthread/udp.h>
 
 #define FACTORY_RESET_TRIGGER_TIMEOUT 3000
 #define FACTORY_RESET_CANCEL_WINDOW_TIMEOUT 3000
 #define APP_TASK_STACK_SIZE (4096)
 #define APP_TASK_PRIORITY 2
 #define APP_EVENT_QUEUE_SIZE 10
+
+#ifndef EXAMPLE_VENDOR_ID
+// Spells CHIP on a dialer
+#define EXAMPLE_VENDOR_ID 0x2447
+#endif
 
 APP_TIMER_DEF(sFunctionTimer);
 
@@ -88,7 +101,7 @@ int AppTask::StartAppTask()
 
 int AppTask::Init()
 {
-    ret_code_t ret;
+    ret_code_t ret = NRF_SUCCESS;
 
     // Initialize LEDs
     sStatusLED.Init(SYSTEM_STATE_LED);
@@ -151,6 +164,44 @@ int AppTask::Init()
         APP_ERROR_HANDLER(NRF_ERROR_NULL);
     }
 
+    {
+        chip::SetupPayload payload;
+        char pairingCode[9];
+        int32_t pairingCodeInt;
+        size_t pairingCodeSize;
+        ret = ConfigurationMgr().GetPairingCode(pairingCode, sizeof(pairingCode), pairingCodeSize);
+        if (ret == CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND)
+        {
+            pairingCodeInt = rand() % 100000000;
+            sprintf(pairingCode, "%08ld", pairingCodeInt);
+            ret = ConfigurationMgr().StorePairingCode(pairingCode, strlen(pairingCode));
+            if (ret != CHIP_NO_ERROR)
+            {
+                NRF_LOG_INFO("ConfigurationMgr().StorePairingCode() failed: %s", chip::ErrorStr(ret));
+                APP_ERROR_HANDLER(NRF_ERROR_NULL);
+            }
+        }
+        else
+        {
+            sscanf(pairingCode, "%ld", &pairingCodeInt);
+        }
+
+        payload.version      = 1;
+        payload.vendorID     = EXAMPLE_VENDOR_ID;
+        payload.productID    = 1;
+        payload.setUpPINCode = pairingCodeInt;
+        chip::QRCodeSetupPayloadGenerator generator(payload);
+
+        std::string result;
+        CHIP_ERROR err = generator.payloadBase41Representation(result);
+        if (err != CHIP_NO_ERROR)
+        {
+            NRF_LOG_ERROR("Failed to generate QR Code");
+        }
+        NRF_LOG_INFO("SetupPINCode: %08d", pairingCodeInt);
+        NRF_LOG_INFO("SetupQRCode:  %s", result.c_str());
+    }
+
     // Init ZCL Data Model
     InitDataModelHandler();
     StartServer(&sTransportIPv6);
@@ -158,15 +209,45 @@ int AppTask::Init()
     return ret;
 }
 
+void SendUDPBroadCast()
+{
+    chip::Inet::UDPEndPoint * ep = NULL;
+    chip::Inet::IPAddress addr;
+    // chip::Inet::InterfaceId interface;
+    if (!ConnectivityMgrImpl().IsThreadAttached())
+    {
+        return;
+    }
+    ThreadStackMgrImpl().LockThreadStack();
+    otError error = OT_ERROR_NONE;
+    otMessageInfo messageInfo;
+    otUdpSocket mSocket;
+    otMessage * message    = nullptr;
+    uint8_t curArg         = 0;
+    uint16_t payloadLength = 0;
+
+    memset(&mSocket, 0, sizeof(mSocket));
+    memset(&messageInfo, 0, sizeof(messageInfo));
+
+    message = otUdpNewMessage(ThreadStackMgrImpl().OTInstance(), nullptr);
+    otIp6AddressFromString("ff03::1", &messageInfo.mPeerAddr);
+    messageInfo.mPeerPort = 23367;
+    otMessageAppend(message, "012345", static_cast<uint16_t>(strlen("012345")));
+
+    otUdpSend(&mSocket, message, &messageInfo);
+    ThreadStackMgrImpl().UnlockThreadStack();
+}
+
 void AppTask::AppTaskMain(void * pvParameter)
 {
-    ret_code_t ret;
+    ret_code_t ret = NRF_SUCCESS;
     AppEvent event;
+    uint64_t mLastChangeTimeUS = 0;
 
     ret = sAppTask.Init();
     if (ret != NRF_SUCCESS)
     {
-        NRF_LOG_INFO("AppTask.Init() failed");
+        NRF_LOG_INFO("AppTask.Init() failed: %d", chip::ErrorStr(ret));
         APP_ERROR_HANDLER(ret);
     }
 
@@ -216,7 +297,8 @@ void AppTask::AppTaskMain(void * pvParameter)
             {
                 sStatusLED.Set(true);
             }
-            else if (sIsThreadProvisioned && sIsThreadEnabled && sIsPairedToAccount && (!sIsThreadAttached || !isFullyConnected))
+            else if (sIsThreadProvisioned &&
+                     sIsThreadEnabled /* && sIsPairedToAccount && (!sIsThreadAttached || !isFullyConnected )*/)
             {
                 sStatusLED.Blink(950, 50);
             }
@@ -234,6 +316,15 @@ void AppTask::AppTaskMain(void * pvParameter)
         sLockLED.Animate();
         sUnusedLED.Animate();
         sUnusedLED_1.Animate();
+
+        uint64_t nowUS            = chip::System::Platform::Layer::GetClock_Monotonic();
+        uint64_t nextChangeTimeUS = mLastChangeTimeUS + 5 * 1000 * 1000UL;
+
+        if (nowUS > nextChangeTimeUS)
+        {
+            SendUDPBroadCast();
+            mLastChangeTimeUS = nowUS;
+        }
     }
 }
 

@@ -42,7 +42,13 @@ namespace DeviceLayer {
 
 using namespace ::chip::DeviceLayer::Internal;
 
-// TODO: Define a Singleton instance of CHIP Group Key Store here (#1204)
+namespace {
+
+// Singleton instance of CHIP Group Key Store.
+// Note: GroupKeyStore is not ready yet
+// GroupKeyStoreImpl gGroupKeyStore;
+
+} // unnamed namespace
 
 /** Singleton instance of the ConfigurationManager implementation object.
  */
@@ -57,7 +63,10 @@ CHIP_ERROR ConfigurationManagerImpl::_Init()
     err = Internal::GenericConfigurationManagerImpl<ConfigurationManagerImpl>::_Init();
     SuccessOrExit(err);
 
-    // TODO: Initialize the global GroupKeyStore object here (#1204)
+    // Initialize the global GroupKeyStore object.
+    // GroupKeyStore is not ready yet
+    // err = gGroupKeyStore.Init();
+    // SuccessOrExit(err);
 
 #if CHIP_DEVICE_CONFIG_ENABLE_FACTORY_PROVISIONING
 

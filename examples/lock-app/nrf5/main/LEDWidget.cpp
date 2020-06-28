@@ -17,9 +17,11 @@
  *    limitations under the License.
  */
 
-#include "boards.h"
-
 #include "LEDWidget.h"
+#include "boards.h"
+#include "system/SystemClock.h"
+
+#include <cstdint>
 
 void LEDWidget::Init(uint32_t gpioNum)
 {
@@ -60,9 +62,9 @@ void LEDWidget::Animate()
 {
     if (mBlinkOnTimeMS != 0 && mBlinkOffTimeMS != 0)
     {
-        int64_t nowUS            = 0;
-        int64_t stateDurUS       = ((mState) ? mBlinkOnTimeMS : mBlinkOffTimeMS) * 1000LL;
-        int64_t nextChangeTimeUS = mLastChangeTimeUS + stateDurUS;
+        uint64_t nowUS            = chip::System::Platform::Layer::GetClock_Monotonic();
+        uint64_t stateDurUS       = ((mState) ? mBlinkOnTimeMS : mBlinkOffTimeMS) * 1000LL;
+        uint64_t nextChangeTimeUS = mLastChangeTimeUS + stateDurUS;
 
         if (nowUS > nextChangeTimeUS)
         {
